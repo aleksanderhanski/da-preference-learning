@@ -123,6 +123,7 @@ def snap_to_bin_label(value, levels):
     label_idx = min(idx, len(levels) - 2)
     return f"≥{levels[label_idx]}"
 
+df["Total Speed_cont"] = df["Total Speed"]  # save continuous before discretization
 df["Total Speed"] = df["Total Speed"].apply(lambda x: snap_to_bin_label(x, levels))
 print(df["Total Speed"].unique())
 
@@ -159,6 +160,7 @@ levels = np.round(np.linspace(df["HorsePower"].min(), df["HorsePower"].max(), 6)
 
 CRITERIA["HorsePower"] = [f"≥{lvl}" for lvl in levels[:-1]]
 
+df["HorsePower_cont"] = df["HorsePower"]  # save continuous before discretization
 df["HorsePower"] = df["HorsePower"].apply(lambda x: snap_to_bin_label(x, levels))
 
 print(CRITERIA)
@@ -206,6 +208,7 @@ def snap_to_bin_label_cost(value, levels_asc, levels_desc):
     inv_idx = len(levels_desc) - 2 - idx
     return f"≤{levels_desc[inv_idx]}"
 
+df["Cars Prices_cont"] = df["Cars Prices"]  # save continuous before discretization
 df["Cars Prices"] = df["Cars Prices"].apply(
     lambda x: snap_to_bin_label_cost(x, levels_sorted, levels_desc)
 )
@@ -275,10 +278,20 @@ print(df["Cars Prices"].unique())
 
 
 # %%
-def save_preprocessed(dataframe, path="dataset/dataset_preprocessed.csv"):
-    cols = ["Company Names", "Cars Names", "HorsePower", "Cars Prices", "Seats", "Total Speed"]
-    dataframe[cols].to_csv(path, index=False)
-    print(f"Preprocessed dataset saved to: {path}")
+def save_preprocessed(dataframe,
+                       path_discrete="dataset/dataset_preprocessed.csv",
+                       path_continuous="dataset/dataset_preprocessed_continuous.csv"):
+    cols_discrete = ["Company Names", "Cars Names", "HorsePower", "Cars Prices", "Seats", "Total Speed"]
+    dataframe[cols_discrete].to_csv(path_discrete, index=False)
+    print(f"Discrete dataset saved to:    {path_discrete}")
+
+    cols_continuous = ["Company Names", "Cars Names", "HorsePower_cont", "Cars Prices_cont", "Seats", "Total Speed_cont"]
+    (dataframe[cols_continuous]
+        .rename(columns={"HorsePower_cont": "HorsePower",
+                         "Cars Prices_cont": "Cars Prices",
+                         "Total Speed_cont": "Total Speed"})
+        .to_csv(path_continuous, index=False))
+    print(f"Continuous dataset saved to:  {path_continuous}")
 
 save_preprocessed(df)
 

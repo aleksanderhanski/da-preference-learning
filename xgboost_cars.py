@@ -39,57 +39,54 @@ _HAS_GRAPHVIZ = shutil.which("dot") is not None
 # ## 1. Load data
 
 # %%
-df_raw = pd.read_csv("dataset/dataset_preprocessed.csv")
+df_raw = pd.read_csv("dataset/dataset_preprocessed_continuous.csv")
 print(df_raw.shape)
 df_raw.head()
 
 # %% [markdown]
-# ## 2. Ordinal encoding
+# ## 2. Criteria
 #
-# Each criterion is encoded so that **higher integer = more preferred** (gain direction).
-# This lets us apply `monotone_constraints = +1` uniformly to all features.
+# | Criterion     | Type | Unit   | Constraint |
+# |---------------|------|--------|------------|
+# | HorsePower    | gain | hp     | +1         |
+# | Cars Prices   | cost | USD    | -1         |
+# | Seats         | gain | count  | +1         |
+# | Total Speed   | gain | km/h   | +1         |
 #
-# | Criterion     | Type | Levels (worst → best) |
-# |---------------|------|------------------------|
-# | HorsePower    | gain | ≥85 → ≥202 → ≥319 → ≥436 → ≥553 |
-# | Total Speed   | gain | ≥125 → ≥150 → ≥175 → ≥200 → ≥225 |
-# | Cars Prices   | cost | ≤105000 → ≤87000 → ≤69000 → ≤51000 → ≤33000 |
-# | Seats         | gain | 7 → 8 → 9 → 12 |
+# Raw continuous values are used directly.  No ordinal encoding needed.
+# The monotone constraint for `Cars Prices` is **-1** (higher price → less preferred).
 
 # %%
-HP_ORDER    = ['≥85.0',    '≥202.0',   '≥319.0',   '≥436.0',    '≥553.0']
-SPEED_ORDER = ['≥125.0',   '≥150.0',   '≥175.0',   '≥200.0',    '≥225.0']
-# Price is cost: cheapest tier gets the highest rank (best)
-PRICE_ORDER = ['≤105000.0','≤87000.0', '≤69000.0', '≤51000.0',  '≤33000.0']
-SEATS_ORDER = [7, 8, 9, 12]
-
-hp_map    = {v: i for i, v in enumerate(HP_ORDER)}
-speed_map = {v: i for i, v in enumerate(SPEED_ORDER)}
-price_map = {v: i for i, v in enumerate(PRICE_ORDER)}
-seats_map = {v: i for i, v in enumerate(SEATS_ORDER)}
-
 df = df_raw.copy()
-# Use friendly column names directly — keeps X column names == FEATURE_NAMES
-df['HorsePower']  = df['HorsePower'].map(hp_map).astype(float)
-df['Total Speed'] = df['Total Speed'].map(speed_map).astype(float)
-df['Cars Prices'] = df['Cars Prices'].map(price_map).astype(float)
-df['Seats']       = df['Seats'].map(seats_map).astype(float)
 
 FEATURE_NAMES = ['HorsePower', 'Cars Prices', 'Seats', 'Total Speed']
-MAX_VALS      = {'HorsePower': 4, 'Cars Prices': 4, 'Seats': 3, 'Total Speed': 4}
+
+# Actual value ranges — used to bound the flip search
+FEATURE_RANGES = {f: (df[f].min(), df[f].max()) for f in FEATURE_NAMES}
+print("Feature ranges:")
+for f, (lo, hi) in FEATURE_RANGES.items():
+    print(f"  {f}: [{lo}, {hi}]")
 
 print(df[FEATURE_NAMES].describe())
 
 # %% [markdown]
 # ## 3. Define target class
 #
-# The dataset has no pre-defined decision classes, so we construct a utility score:
-# equal weights on all four criteria (already normalised to the same ordinal scale 0–4).
-# Alternatives at or above the median utility are labelled **class 1** (preferred by Michał),
-# the rest are **class 0**.
+# The dataset has no pre-defined decision classes, so we construct a utility score with
+# equal weights on all four criteria.  Before summing, each criterion is normalised to
+# [0, 1]; `Cars Prices` is **inverted** so cheaper → higher utility.
+# Alternatives are ranked by utility and split 50/50 into class 1 (preferred) / class 0.
 
 # %%
-df['utility'] = df[FEATURE_NAMES].sum(axis=1)
+def normalise(s):
+    return (s - s.min()) / (s.max() - s.min())
+
+df['utility'] = (
+    normalise(df['HorsePower']) +
+    normalise(df['Cars Prices'].max() - df['Cars Prices']) +   # inverted: cheaper = better
+    normalise(df['Seats']) +
+    normalise(df['Total Speed'])
+)
 # Rank-based split → exactly 50/50 balance (ties broken by first-occurrence order)
 n = len(df)
 df['class'] = (df['utility'].rank(method='first', ascending=True) > n // 2).astype(int)
@@ -98,7 +95,7 @@ print("Class distribution:")
 print(df['class'].value_counts().rename({0: 'class 0 (not preferred)', 1: 'class 1 (preferred)'}))
 
 # %%
-X = df[FEATURE_NAMES].copy()
+X = df[FEATURE_NAMES].astype(float).copy()
 y = df['class']
 
 X_train, X_test, y_train, y_test = train_test_split(
@@ -109,21 +106,21 @@ print(f"Train size: {len(X_train)}  |  Test size: {len(X_test)}")
 # %% [markdown]
 # ## 4. Train XGBoost with monotone constraints
 #
-# All four criteria are encoded in gain direction, so `monotone_constraints = (1,1,1,1)`.
-# A single tree (`n_estimators=1`) keeps the model interpretable — we can plot and
-# reason about the full decision tree.
+# Features are in the order `[HorsePower, Cars Prices, Seats, Total Speed]`.
+# `Cars Prices` is a **cost** criterion, so its constraint is **-1** (higher price → lower preference).
+# A single tree (`n_estimators=1`) keeps the model fully interpretable.
 
 # %%
 CRITERIA_NR = len(FEATURE_NAMES)
 
 params = {
-    "max_depth": CRITERIA_NR * 2,       # enough depth to split on every criterion
+    "max_depth": CRITERIA_NR * 2,
     "eta": 0.1,
     "nthread": 2,
     "seed": 0,
     "eval_metric": "logloss",
-    "base_score": 0.5,                  # neutral base — forces model to actually learn both classes
-    "monotone_constraints": "(" + ",".join(["1"] * CRITERIA_NR) + ")",
+    "base_score": 0.5,
+    "monotone_constraints": "(1,-1,1,1)",   # HP, Price(cost), Seats, Speed
     "n_estimators": 1,
 }
 
@@ -245,8 +242,8 @@ print("Selected alternatives:")
 for idx, lbl in zip(selected, labels):
     row = df_pred.loc[idx]
     print(f"  [{lbl}] {get_name(idx)}")
-    print(f"    Criteria: HP={row['HorsePower']}  Price={row['Cars Prices']}  "
-          f"Seats={row['Seats']}  Speed={row['Total Speed']}")
+    print(f"    Criteria: HP={row['HorsePower']:.0f} hp, Price=${row['Cars Prices']:.0f}, "
+          f"Seats={row['Seats']:.0f}, Speed={row['Total Speed']:.0f} km/h")
     print(f"    Utility={row['utility']}  Pred prob={row['pred_prob']:.4f}  Class={int(row['pred'])}")
 
 # %% [markdown]
@@ -279,42 +276,64 @@ plt.show()
 # %% [markdown]
 # ## 12. Minimum single-criterion change to flip class (analytical)
 #
-# For each of the 3 alternatives we iterate through the ordinal levels of every criterion
-# one step at a time (up then down) and find the first step that flips the predicted class.
-# Because monotone constraints are enforced, the direction of improvement is always
-# "increase the criterion value"; the only question is **how many steps are needed**.
-#
-# We report the **minimum** such change across criteria, then verify by sampling.
+# With continuous features the decision boundaries are the **split thresholds** stored in
+# the tree.  For each criterion we read all thresholds from the tree dump, then find the
+# closest threshold crossing (value just above or just below) that changes the predicted
+# class.  The required delta is read directly from the model parameters — no sampling.
 
 # %%
-def find_min_flip(model, row, feature_names, max_vals):
-    """Return list of dicts for each criterion that can flip the class with min steps."""
+def get_tree_thresholds(model, feature_names):
+    """Parse split thresholds per feature from the XGBoost text dump."""
+    dump = model.get_booster().get_dump()[0]
+    thresholds = {f: [] for f in feature_names}
+    for line in dump.split('\n'):
+        for f in feature_names:
+            tag = f'[{f}<'
+            if tag in line:
+                thresh = float(line.split(tag)[1].split(']')[0])
+                thresholds[f].append(thresh)
+    return thresholds
+
+
+def find_min_flip(model, row, feature_names, feature_ranges):
+    """Return the minimum-delta single-criterion change that flips the predicted class.
+
+    Uses tree split thresholds directly (analytical) — tries values just above and just
+    below each threshold and picks the smallest absolute change that flips the class.
+    """
     X_row = pd.DataFrame([row[feature_names]])
     current_pred = int(model.predict(X_row)[0])
+    thresholds = get_tree_thresholds(model, feature_names)
     results = []
+
     for feat in feature_names:
-        orig = int(row[feat])
-        flipped = False
-        for direction in [+1, -1]:
-            for steps in range(1, 5):
-                new_val = orig + direction * steps
-                if new_val < 0 or new_val > max_vals[feat]:
-                    break
+        orig = float(row[feat])
+        lo, hi = feature_ranges[feat]
+        feat_thresholds = sorted(set(thresholds.get(feat, [])))
+
+        best_for_feat = None
+        for thresh in feat_thresholds:
+            for new_val in [thresh + 1e-3, thresh - 1e-3]:
+                if new_val < lo or new_val > hi or abs(new_val - orig) < 1e-9:
+                    continue
                 test = row[feature_names].copy()
                 test[feat] = new_val
                 new_pred = int(model.predict(pd.DataFrame([test]))[0])
                 if new_pred != current_pred:
-                    results.append({
-                        'criterion': feat,
-                        'delta':     direction * steps,
-                        'new_val':   new_val,
-                        'new_pred':  new_pred,
-                    })
-                    flipped = True
-                    break
-            if flipped:
-                break
+                    delta = new_val - orig
+                    if best_for_feat is None or abs(delta) < abs(best_for_feat['delta']):
+                        best_for_feat = {
+                            'criterion':  feat,
+                            'threshold':  thresh,
+                            'delta':      delta,
+                            'new_val':    new_val,
+                            'new_pred':   new_pred,
+                        }
+        if best_for_feat:
+            results.append(best_for_feat)
+
     return results
+
 
 print("=" * 60)
 for idx, lbl in zip(selected, labels):
@@ -322,21 +341,22 @@ for idx, lbl in zip(selected, labels):
     name = get_name(idx)
     print(f"\n[{lbl}] {name}")
     print(f"  Current class: {int(row['pred'])}  "
-          f"(HP={int(row['HorsePower'])}, Price={int(row['Cars Prices'])}, "
-          f"Seats={int(row['Seats'])}, Speed={int(row['Total Speed'])})")
+          f"HP={row['HorsePower']:.0f} hp, Price=${row['Cars Prices']:.0f}, "
+          f"Seats={row['Seats']:.0f}, Speed={row['Total Speed']:.0f} km/h")
 
-    flips = find_min_flip(model, row, FEATURE_NAMES, MAX_VALS)
+    flips = find_min_flip(model, row, FEATURE_NAMES, FEATURE_RANGES)
     if flips:
         for f in flips:
-            print(f"  → Change '{f['criterion']}' by {f['delta']:+d} ordinal step(s)"
-                  f" (to level {f['new_val']}) → predicted class flips to {f['new_pred']}")
+            print(f"  → Change '{f['criterion']}' by {f['delta']:+.1f}"
+                  f" (cross tree threshold {f['threshold']:.1f})"
+                  f" → predicted class flips to {f['new_pred']}")
     else:
-        print("  → No single-criterion change can flip the class at any level")
+        print("  → No single-criterion change can flip the class")
 
 # %% [markdown]
 # ## 13. Space sampling verification
 #
-# We slightly perturb the criterion identified above and confirm the class flip.
+# We apply the minimum change found analytically and confirm the class flip.
 
 # %%
 print("=" * 60)
@@ -346,12 +366,11 @@ for idx, lbl in zip(selected, labels):
     orig_pred = int(row['pred'])
     print(f"\n[{lbl}] {name}  (original class={orig_pred})")
 
-    flips = find_min_flip(model, row, FEATURE_NAMES, MAX_VALS)
+    flips = find_min_flip(model, row, FEATURE_NAMES, FEATURE_RANGES)
     if not flips:
         print("  No flip possible — nothing to verify.")
         continue
 
-    # Take the flip with smallest |delta|
     best = min(flips, key=lambda x: abs(x['delta']))
     test_row = row[FEATURE_NAMES].copy()
     test_row[best['criterion']] = best['new_val']
@@ -359,8 +378,9 @@ for idx, lbl in zip(selected, labels):
     sampled_prob = model.predict_proba(pd.DataFrame([test_row]))[0, 1]
 
     agree = "✓ AGREE" if sampled_pred != orig_pred else "✗ DISAGREE"
-    print(f"  Analytical:  set '{best['criterion']}' → level {best['new_val']}  "
-          f"→ class {best['new_pred']}")
+    print(f"  Analytical:  '{best['criterion']}' → {best['new_val']:.1f}"
+          f"  (Δ={best['delta']:+.1f}, crosses threshold {best['threshold']:.1f})"
+          f"  → class {best['new_pred']}")
     print(f"  Sampling:    predicted class={sampled_pred}  prob={sampled_prob:.4f}  {agree}")
 
 # %% [markdown]
@@ -377,9 +397,9 @@ for idx, lbl in zip(selected, labels):
 #   levels where an additional step on that criterion makes no difference to the prediction
 #   — i.e., indifference ranges in the model's learned preference structure.
 #
-# * **Criterion nature**: All four criteria are treated as gain-type after encoding.
-#   Cars Prices is originally a cost criterion but is inverted during encoding so that
-#   cheaper → higher utility → higher class probability, preserving monotonicity.
+# * **Criterion nature**: HorsePower, Seats and Total Speed are gain criteria (+1 constraint).
+#   Cars Prices is a cost criterion (−1 constraint): the tree splits enforce that higher
+#   price can only decrease the preference probability.
 #
 # * **Interactions**: The 2-D PDP panels (Section 8) show whether the effect of one
 #   criterion depends on the level of another (interaction effects).
