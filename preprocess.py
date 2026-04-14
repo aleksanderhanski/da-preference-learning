@@ -78,12 +78,12 @@ print(df[df["Seats"].isin(["2+2", "2-6", "2-7","2-9", "2-12", "2-15", "7-8"])])
 # There are only alternatives with "2+2" seats.
 
 # %%
-df = df[df["Seats"].isin(['8','9','12'])]
+df = df[df["Seats"].isin(['7','8','9','12'])]
 
-print(len(df))
+print(f'Number of alternatives after filtering by number of seats: {len(df)}')
 
 # %%
-CRITERIA = {"Seats": ['8','9','12']}
+CRITERIA = {"Seats": ['7','8','9','12']}
 
 # %% [markdown]
 # ## Total speed:
@@ -220,7 +220,7 @@ print(df["Cars Prices"].unique())
 #
 # 3. Michał wants the car that is cheap (as he has not found internship yet), that is fast, but also important factor is that the car shall have many seats - Michał wants to do a walcome party in his car, and be able to invite as many people as possible.
 #
-# 4. Michał considered 31 alternatives - only cars with number of seats equal to 8 or more. But the Michał shrank his dataset to 8 random options from this so that he could use not only uta but also ahp on whole dataset and compare results. This is much less alternatives than in original dataset.
+# 4. Michał considered 31 alternatives - only cars with number of seats equal to 7 or more. But the Michał shrank his dataset to 8 random options from this so that he could use not only uta but also ahp on whole dataset and compare results. This is much less alternatives than in original dataset.
 #
 # 5. One alternative from original dataset is FERRARI SF90 STRADALE:
 #
@@ -257,7 +257,7 @@ print(df["Cars Prices"].unique())
 #
 # 8. All 4 criteria that were considered are of equal importance. Other criteria are irrelevant.
 #
-# 10. In my opinion the best alternative would be Ferrari, but Michał wants to consider alternative that has 8 seats or more, if that constraint is fulfilled, then he wants to consider number of seats, horse power, total speed, and price as similarly important.
+# 10. In my opinion the best alternative would be Ferrari, but Michał wants to consider alternative that has 7 seats or more, if that constraint is fulfilled, then he wants to consider number of seats, horse power, total speed, and price as similarly important.
 #
 # 11. There is no alternative that seems to be much better than the others. One alternative that can be considered is Honda Pilot - it costs 40,000$, so is realtively cheap, total speed of 209 km/h, what is better score than average among considered alternatives, and its horse power is not worse than many other alternatives. So it is good not because of one outsanding criterium, but because of good overall value of criteria.
 #
