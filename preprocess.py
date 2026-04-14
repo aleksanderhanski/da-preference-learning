@@ -152,6 +152,8 @@ plt.xlabel("HorsePower)")
 plt.ylabel("Count")
 plt.show()
 
+df = df[df["HorsePower"] < 682]  # remove Cadillac Escalade V outlier (682 hp)
+
 # %%
 levels = np.round(np.linspace(df["HorsePower"].min(), df["HorsePower"].max(), 6), 2)
 
