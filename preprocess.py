@@ -276,7 +276,8 @@ print(df["Cars Prices"].unique())
 
 # %%
 def save_preprocessed(dataframe, path="dataset/dataset_preprocessed.csv"):
-    dataframe.to_csv(path, index=False)
+    cols = ["Company Names", "Cars Names", "HorsePower", "Cars Prices", "Seats", "Total Speed"]
+    dataframe[cols].to_csv(path, index=False)
     print(f"Preprocessed dataset saved to: {path}")
 
 save_preprocessed(df)
