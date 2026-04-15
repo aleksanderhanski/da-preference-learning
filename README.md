@@ -1,3 +1,5 @@
+... we might need to choose between naueral_net.py and deep_nn_cars.py. On the other hand we have 2 alternative solutions
+
 # Project Preference Learning — Cars 2025
 
 Aleksander Hański 160315 and Michał Żurawski 160252.
