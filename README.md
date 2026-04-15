@@ -1,5 +1,3 @@
-... we might need to choose between naueral_net.py and deep_nn_cars.py. On the other hand we have 2 alternative solutions
-
 # Project Preference Learning — Cars 2025
 
 Aleksander Hański 160315 and Michał Żurawski 160252.
@@ -9,12 +7,11 @@ dataset (4 monotone criteria, 177 alternatives, binary class).
 
 ## Models
 
-| File                 | Model                                      | Grade tier |
-| -------------------- | ------------------------------------------ | ---------- |
-| `xgboost_cars.py`    | XGBoost with monotone constr.              | 3          |
-| `ann_utadis_cars.py` | ANN-UTADIS (additive utility)              | 4          |
-| `deep_nn_cars.py`    | Deep feed-forward NN (BCE + Adam)          | 5          |
-| `neural_net.py`      | MLP (Regret loss + AdamW + OneCycleLR)     | 5 (alt.)   |
+| File                 | Model                             | Grade tier |
+| -------------------- | --------------------------------- | ---------- |
+| `xgboost_cars.py`    | XGBoost with monotone constr.     | 3          |
+| `ann_utadis_cars.py` | ANN-UTADIS (additive utility)     | 4          |
+| `deep_nn_cars.py`    | Deep feed-forward NN (BCE + Adam) | 5          |
 
 Each notebook reports Accuracy / F1 / AUC (4 dp) and contains:
 feature importance (gain / Permutation FI), PDP, ICE, SHAP (waterfalls +
@@ -24,8 +21,7 @@ interpretation summary.
 
 `xgboost_cars.py`, `ann_utadis_cars.py` and `deep_nn_cars.py` share helpers
 from `common_cars.py` (data loading, metrics, PFI, PDP/ICE, model-agnostic
-min-flip). `neural_net.py` is a self-contained alternative grade-5 model and
-depends on its own `utils.py`.
+min-flip).
 
 ## Dataset
 
@@ -48,13 +44,12 @@ python preprocess.py
 python xgboost_cars.py
 python ann_utadis_cars.py
 python deep_nn_cars.py
-python neural_net.py
 
 # or convert to notebooks and run interactively
-jupytext --to ipynb xgboost_cars.py ann_utadis_cars.py deep_nn_cars.py neural_net.py
+jupytext --to ipynb xgboost_cars.py ann_utadis_cars.py deep_nn_cars.py
 jupyter nbconvert --to html --execute *.ipynb
 ```
 
 ## Dependencies
 
-`numpy pandas matplotlib scikit-learn xgboost shap torch kagglehub`
+`numpy pandas matplotlib seaborn scikit-learn xgboost shap torch kagglehub`
