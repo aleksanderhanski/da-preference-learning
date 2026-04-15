@@ -9,3 +9,6 @@ dataset/
 
 # PyTorch checkpoints
 *.pt
+
+.venv
+myenv/

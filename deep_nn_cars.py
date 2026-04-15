@@ -19,16 +19,13 @@
 #
 # We train a plain feed-forward neural network (`4 → 32 → 32 → 16 → 1`) with
 # ReLU activations and **no monotone constraints**.  This is the
-# unconstrained, highly flexible counterpart to the ANN-UTADIS model — it is
+# unconstrained, flexible counterpart to the ANN-UTADIS model — it is
 # not interpretable by construction, so we rely on post-hoc explanation tools
 # (PDP, ICE, permutation feature importance and SHAP) to recover whatever
 # preference structure the network has learned.
 #
-# The project note is explicit: "explaining that you can't give some
-# information because they are neural network is not enough".  The whole
-# point of this section is to show that we can still say meaningful things
-# about criterion influence, monotonicity and preference thresholds — even
-# when the model itself does not give them away for free.
+# We can still say meaningful things about criterion influence, monotonicity and preference thresholds
+# — even when the model itself does not give them away for free.
 
 # %%
 import numpy as np
