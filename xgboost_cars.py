@@ -31,9 +31,12 @@ import shap
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 from sklearn.inspection import PartialDependenceDisplay
-import shutil
+import shutil, importlib.util
 from xgboost import plot_tree
-_HAS_GRAPHVIZ = shutil.which("dot") is not None
+_HAS_GRAPHVIZ = (
+    shutil.which("dot") is not None
+    and importlib.util.find_spec("graphviz") is not None
+)
 
 # %% [markdown]
 # ## 1. Load data
