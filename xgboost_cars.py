@@ -217,6 +217,28 @@ plt.tight_layout()
 plt.show()
 
 # %% [markdown]
+# ## 9b. Permutation Feature Importance
+#
+# Gain-weighted importance measures how much each feature's splits improved the
+# training loss; **permutation importance** instead measures how much the test
+# AUC drops when a feature is shuffled.  It is model-agnostic and complements
+# the gain view.  We import the shared helper so all three models report the
+# same metric.
+
+# %%
+from common_cars import permutation_feature_importance, plot_permutation_importance
+
+def _xgb_predict_proba(X_df):
+    return model.predict_proba(X_df)[:, 1]
+
+pfi = permutation_feature_importance(_xgb_predict_proba, X_train, y_train,
+                                     feature_names=FEATURE_NAMES, n_repeats=30)
+print("Permutation importance (AUC drop):")
+for f, (m, s) in sorted(pfi.items(), key=lambda kv: -kv[1][0]):
+    print(f"  {f:14s}  {m:+.4f} ± {s:.4f}")
+plot_permutation_importance(pfi, title="XGBoost — Permutation FI")
+
+# %% [markdown]
 # ## 10. Select 3 alternatives for deep explanation
 #
 # We pick one clearly **preferred**, one **borderline**, and one clearly **not preferred**
