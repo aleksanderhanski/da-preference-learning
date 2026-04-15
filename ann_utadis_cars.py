@@ -13,7 +13,7 @@
 # ---
 
 # %% [markdown]
-# # ANN-UTADIS — Car Preference Learning
+# # ANN-UTADIS - Car Preference Learning
 #
 # **Aleksander Hański 160315 and Michał Żurawski 160252**
 #
@@ -21,7 +21,7 @@
 # criterion's marginal value function `u_j(x_j)` is a small monotone neural
 # network, the total utility is `U(x) = Σ u_j(x_j)`, and the class probability
 # is `sigmoid((U − τ) / s)`.  Monotonicity is enforced by squaring all weights
-# in the per-criterion MLPs — this makes each `u_j` provably monotone in the
+# in the per-criterion MLPs - this makes each `u_j` provably monotone in the
 # (normalised, cost-inverted) input, so the model is fully interpretable:
 # the user's preferences are literally the learned marginal value functions.
 
@@ -81,8 +81,8 @@ X_all_n   = preprocess(X)
 # %% [markdown]
 # ## 3. ANN-UTADIS architecture
 #
-# * One tiny monotone MLP per criterion (`1 → 8 → 8 → 1`).
-# * Positive weights via `W_eff = W ** 2` and `sigmoid` activations — both
+# * One tiny monotone MLP per criterion (`1 -> 8 -> 8 -> 1`).
+# * Positive weights via `W_eff = W ** 2` and `sigmoid` activations - both
 #   increasing, so the composition is monotone increasing.
 # * Global threshold `τ` and scale `s = exp(log_s)` are learnable.
 # * `P(class = 1) = sigmoid((U − τ) / s)`.
@@ -167,13 +167,13 @@ def predict_df(X_df: pd.DataFrame) -> np.ndarray:
 report_metrics(predict_df, predict_proba_df, X_train, y_train, X_test, y_test)
 
 # %% [markdown]
-# ## 6. Marginal value functions — the primary ANN-UTADIS interpretation
+# ## 6. Marginal value functions - the primary ANN-UTADIS interpretation
 #
 # Each plot shows `u_j(x_j)` over the **raw** criterion value.  Because cost
 # criteria are inverted before going into the monotone MLP, the plot against
-# raw price is decreasing (higher price → lower marginal utility), exactly as
+# raw price is decreasing (higher price -> lower marginal utility), exactly as
 # expected for a cost criterion.  The *range* of each curve measures how much
-# that criterion can move the overall utility — i.e., its learned importance.
+# that criterion can move the overall utility - i.e., its learned importance.
 
 # %%
 def marginal_curve(j: int, f: str):
@@ -216,14 +216,14 @@ pfi = permutation_feature_importance(predict_proba_df, X_train, y_train,
 print("Permutation importance (AUC drop):")
 for f, (m, s) in sorted(pfi.items(), key=lambda kv: -kv[1][0]):
     print(f"  {f:14s}  {m:+.4f} ± {s:.4f}")
-plot_permutation_importance(pfi, title="ANN-UTADIS — Permutation FI")
+plot_permutation_importance(pfi, title="ANN-UTADIS - Permutation FI")
 
 # %% [markdown]
 # ## 8. PDP and ICE
 #
 # Because the model is **additive**, the PDP for each criterion is (up to a
 # constant shift and the sigmoid link) just the marginal value function.  ICE
-# curves should all have the same *shape* as the PDP — any spread visible in
+# curves should all have the same *shape* as the PDP - any spread visible in
 # ICE comes from different baseline utilities shifting the sigmoid, not from
 # interactions, which the architecture makes impossible.
 
@@ -255,7 +255,7 @@ for idx, lbl in selected:
 # For an additive UTADIS model, SHAP values have a closed form:
 # `SHAP_j(x) = u_j(x_j) − E_background[u_j(X_j)]`.  We compute them both
 # analytically (fast and exact for this model class) and via KernelExplainer
-# as a sanity check — the two should agree up to numerical noise.
+# as a sanity check - the two should agree up to numerical noise.
 
 # %%
 with torch.no_grad():
@@ -283,7 +283,7 @@ for idx, lbl in selected:
         feature_names = FEATURE_NAMES,
     )
     shap.plots.waterfall(explanation, show=False)
-    plt.title(f"ANN-UTADIS SHAP — {lbl}: {name}", pad=12)
+    plt.title(f"ANN-UTADIS SHAP - {lbl}: {name}", pad=12)
     plt.tight_layout()
     plt.show()
 
@@ -327,7 +327,7 @@ def analytical_flip(idx):
         # candidates that actually cross the threshold (sign change in us - u_needed)
         diffs = us - u_needed
         if current_pred == 1:
-            mask = diffs < 0          # need u_j smaller than u_needed → class 0
+            mask = diffs < 0          # need u_j smaller than u_needed -> class 0
         else:
             mask = diffs > 0
         if not mask.any():
@@ -356,9 +356,9 @@ for idx, lbl in selected:
     current_pred, flips = analytical_flip(idx)
     print(f"\n[{lbl}] {name}  (class = {current_pred})")
     if not flips:
-        print("  → No single-criterion change can flip the class")
+        print("  -> No single-criterion change can flip the class")
     for f in flips:
-        print(f"  → '{f['criterion']}' : {f['orig_value']:.1f} → {f['new_value']:.1f}  "
+        print(f"  -> '{f['criterion']}' : {f['orig_value']:.1f} -> {f['new_value']:.1f}  "
               f"(Δ = {f['delta']:+.1f})   [needs u_j = {f['u_needed']:.4f}]")
     analytical_results[idx] = flips
 
@@ -386,14 +386,14 @@ for idx, lbl in selected:
         sampled_pred  = int(predict_df(pd.DataFrame([test_row]))[0])
         sampled_prob  = float(predict_proba_df(pd.DataFrame([test_row]))[0])
         agree = "✓ AGREE" if sampled_pred != best['old_pred'] else "✗ DISAGREE"
-        print(f"  Analytical: '{best['criterion']}' → {best['new_value']:.1f}  (Δ={best['delta']:+.1f})")
+        print(f"  Analytical: '{best['criterion']}' -> {best['new_value']:.1f}  (Δ={best['delta']:+.1f})")
         print(f"  Sampling:   class={sampled_pred}  prob={sampled_prob:.4f}   {agree}")
 
     # Independent grid search (model-agnostic)
     grid_flips = find_min_flip_sampling(predict_df, row, FEATURE_NAMES, FEATURE_RANGES)
     if grid_flips:
         best_grid = min(grid_flips, key=lambda r: abs(r['delta']))
-        print(f"  Grid  :    '{best_grid['criterion']}' Δ={best_grid['delta']:+.1f} → class {best_grid['new_pred']}")
+        print(f"  Grid  :    '{best_grid['criterion']}' Δ={best_grid['delta']:+.1f} -> class {best_grid['new_pred']}")
 
 # %% [markdown]
 # ## 13. Model interpretation summary
@@ -407,7 +407,7 @@ for idx, lbl in selected:
 #   network cannot represent a non-monotone response, the user is assumed
 #   to prefer more of a gain criterion and less of a cost criterion.
 #
-# * **Preference thresholds**: the sigmoid link is centred on `τ` — any point
+# * **Preference thresholds**: the sigmoid link is centred on `τ` - any point
 #   with total utility `U(x) > τ` is class 1, else class 0.  Flat regions on
 #   the left/right of each marginal correspond to ranges of the criterion
 #   that are **preference-indifferent** for the user.

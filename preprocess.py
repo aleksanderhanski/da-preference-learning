@@ -196,7 +196,7 @@ plt.show()
 levels = np.linspace(df["Cars Prices"].max(), df["Cars Prices"].min(), 6)
 
 levels_sorted = np.sort(levels)  # ascending for digitize
-levels_desc = levels             # descending for labels (best → worst)
+levels_desc = levels             # descending for labels (best -> worst)
 
 CRITERIA["Cars Prices"] = [f"≤{lvl}" for lvl in levels_desc[:-1]]
 

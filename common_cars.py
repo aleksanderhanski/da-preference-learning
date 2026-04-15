@@ -239,7 +239,7 @@ def plot_pdp_ice_grid(predict_proba_fn, X_background, feature_names, feature_ran
     for j, f in enumerate(feature_names):
         xs, probs = manual_pdp(predict_proba_fn, X_background, f, feature_ranges[f])
         axes[0, j].plot(xs, probs, color='#d9534f', lw=2)
-        axes[0, j].set_title(f"PDP — {f}")
+        axes[0, j].set_title(f"PDP - {f}")
         axes[0, j].set_xlabel(f)
         axes[0, j].set_ylabel("mean P(class=1)")
 
@@ -247,7 +247,7 @@ def plot_pdp_ice_grid(predict_proba_fn, X_background, feature_names, feature_ran
         for row in curves:
             axes[1, j].plot(xs, row, color='#4a90d9', alpha=0.25, lw=0.8)
         axes[1, j].plot(xs, curves.mean(0), color='#d9534f', lw=2)
-        axes[1, j].set_title(f"ICE — {f}")
+        axes[1, j].set_title(f"ICE - {f}")
         axes[1, j].set_xlabel(f)
         axes[1, j].set_ylabel("P(class=1)")
     if title_prefix:

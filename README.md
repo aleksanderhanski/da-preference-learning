@@ -1,4 +1,4 @@
-# Project Preference Learning — Cars 2025
+# Project Preference Learning - Cars 2025
 
 Aleksander Hański 160315 and Michał Żurawski 160252.
 
@@ -25,12 +25,12 @@ min-flip).
 
 ## Dataset
 
-Preprocessed by `preprocess.py` — downloads the Kaggle
+Preprocessed by `preprocess.py` - downloads the Kaggle
 `abdulmalik1518/cars-datasets-2025` dataset, filters to cars with ≥7 seats,
 cleans unit strings, removes one HP outlier, and writes:
 
-- `dataset/dataset_preprocessed.csv` — discrete (binned) version
-- `dataset/dataset_preprocessed_continuous.csv` — raw numerical values
+- `dataset/dataset_preprocessed.csv` - discrete (binned) version
+- `dataset/dataset_preprocessed_continuous.csv` - raw numerical values
 
 All three models use the continuous version.
 

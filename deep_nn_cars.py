@@ -13,19 +13,19 @@
 # ---
 
 # %% [markdown]
-# # Deep Neural Network — Car Preference Learning
+# # Deep Neural Network - Car Preference Learning
 #
 # **Aleksander Hański 160315 and Michał Żurawski 160252**
 #
-# We train a plain feed-forward neural network (`4 → 32 → 32 → 16 → 1`) with
+# We train a plain feed-forward neural network (`4 -> 32 -> 32 -> 16 -> 1`) with
 # ReLU activations and **no monotone constraints**.  This is the
-# unconstrained, flexible counterpart to the ANN-UTADIS model — it is
+# unconstrained, flexible counterpart to the ANN-UTADIS model - it is
 # not interpretable by construction, so we rely on post-hoc explanation tools
 # (PDP, ICE, permutation feature importance and SHAP) to recover whatever
 # preference structure the network has learned.
 #
 # We can still say meaningful things about criterion influence, monotonicity and preference thresholds
-# — even when the model itself does not give them away for free.
+# - even when the model itself does not give them away for free.
 
 # %%
 import numpy as np
@@ -56,7 +56,7 @@ print(df.shape)
 # %% [markdown]
 # ## 2. Scale features to [0, 1]
 #
-# We **do not** invert the cost criterion here — we want the network to
+# We **do not** invert the cost criterion here - we want the network to
 # learn the direction itself, so that the post-hoc explanations reveal
 # whether a free-form deep model really picks up the gain/cost structure
 # without being told.
@@ -175,7 +175,7 @@ pfi = permutation_feature_importance(predict_proba_df, X_train, y_train,
 print("Permutation importance (AUC drop):")
 for f, (m, s) in sorted(pfi.items(), key=lambda kv: -kv[1][0]):
     print(f"  {f:14s}  {m:+.4f} ± {s:.4f}")
-plot_permutation_importance(pfi, title="Deep NN — Permutation FI")
+plot_permutation_importance(pfi, title="Deep NN - Permutation FI")
 
 # %% [markdown]
 # ## 8. Select 3 alternatives
@@ -219,7 +219,7 @@ for idx, lbl in selected:
         feature_names = FEATURE_NAMES,
     )
     shap.plots.waterfall(explanation, show=False)
-    plt.title(f"Deep NN SHAP — {lbl}: {name}", pad=12)
+    plt.title(f"Deep NN SHAP - {lbl}: {name}", pad=12)
     plt.tight_layout()
     plt.show()
 
@@ -234,12 +234,12 @@ plt.tight_layout()
 plt.show()
 
 # %% [markdown]
-# ## 10. Minimum single-criterion change to flip class — analytical linearisation
+# ## 10. Minimum single-criterion change to flip class - analytical linearisation
 #
 # A deep network has no closed-form decision boundary, but at any point we
 # can linearise the model and *analytically* estimate the Δ needed to move
 # the predicted probability to 0.5.  Using the logit (pre-sigmoid) output
-# `z(x)` — since `sigmoid(z) = 0.5 ⇔ z = 0` — we compute
+# `z(x)` - since `sigmoid(z) = 0.5 ⇔ z = 0` - we compute
 #
 #     Δx_j ≈ −z(x) / ∂z/∂x_j
 #
@@ -267,7 +267,7 @@ def linear_flip_estimate(idx):
         delta_raw = delta_n * (hi - lo)
         new_raw = x_raw[j] + delta_raw
         if new_raw < lo or new_raw > hi:
-            # The linearisation points outside the feasible range — still report
+            # The linearisation points outside the feasible range - still report
             # the estimate, but mark it as out-of-range so the sampling step
             # knows to clip.
             feasible = False
@@ -291,10 +291,10 @@ for idx, lbl in selected:
     current, flips = linear_flip_estimate(idx)
     print(f"\n[{lbl}] {name}  (class = {current})")
     if not flips:
-        print("  → gradient is ~0 everywhere; no linear estimate")
+        print("  -> gradient is ~0 everywhere; no linear estimate")
     for f in flips:
-        flag = "" if f['feasible'] else "  (out of range — clipped at sampling)"
-        print(f"  → '{f['criterion']}' : {f['orig_value']:.1f} → {f['new_value']:.1f}  "
+        flag = "" if f['feasible'] else "  (out of range - clipped at sampling)"
+        print(f"  -> '{f['criterion']}' : {f['orig_value']:.1f} -> {f['new_value']:.1f}  "
               f"(Δ ≈ {f['delta']:+.1f}){flag}")
     analytical_results[idx] = flips
 
@@ -304,7 +304,7 @@ for idx, lbl in selected:
 # For each selected alternative we run the model-agnostic grid search from
 # `common_cars.find_min_flip_sampling`.  This is the ground truth for the
 # minimum single-criterion flip.  We then compare the analytical linearised
-# Δ from Section 10 against the true Δ — agreement is evidence that the
+# Δ from Section 10 against the true Δ - agreement is evidence that the
 # local linearisation is reasonable in this neighbourhood.
 
 # %%
@@ -322,7 +322,7 @@ for idx, lbl in selected:
 
     grid_best = min(grid_flips, key=lambda r: abs(r['delta']))
     print(f"  Sampling best: '{grid_best['criterion']}' Δ={grid_best['delta']:+.1f}  "
-          f"→ class {grid_best['new_pred']}")
+          f"-> class {grid_best['new_pred']}")
 
     # Compare to the linearisation result for the same criterion
     ana = analytical_results.get(idx, [])
@@ -345,7 +345,7 @@ for idx, lbl in selected:
 #   check in Section 6 reads the slope of each PDP curve.  A matching sign
 #   with `CRITERION_DIRECTION` means the unconstrained network recovered
 #   the "correct" direction; a mismatch would reveal that the network
-#   learned a non-monotone response in some region — worth flagging,
+#   learned a non-monotone response in some region - worth flagging,
 #   because ANN-UTADIS cannot represent that.
 #
 # * **Preference thresholds**: sharp transitions in the PDP curve correspond

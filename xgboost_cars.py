@@ -13,7 +13,7 @@
 # ---
 
 # %% [markdown]
-# # XGBoost — Car Preference Learning
+# # XGBoost - Car Preference Learning
 #
 # **Aleksander Hański 160315 and Michał Żurawski 160252**
 #
@@ -57,14 +57,14 @@ df_raw.head()
 # | Total Speed   | gain | km/h   | +1         |
 #
 # Raw continuous values are used directly.  No ordinal encoding needed.
-# The monotone constraint for `Cars Prices` is **-1** (higher price → less preferred).
+# The monotone constraint for `Cars Prices` is **-1** (higher price -> less preferred).
 
 # %%
 df = df_raw.copy()
 
 FEATURE_NAMES = ['HorsePower', 'Cars Prices', 'Seats', 'Total Speed']
 
-# Actual value ranges — used to bound the flip search
+# Actual value ranges - used to bound the flip search
 FEATURE_RANGES = {f: (df[f].min(), df[f].max()) for f in FEATURE_NAMES}
 print("Feature ranges:")
 for f, (lo, hi) in FEATURE_RANGES.items():
@@ -77,7 +77,7 @@ print(df[FEATURE_NAMES].describe())
 #
 # The dataset has no pre-defined decision classes, so we construct a utility score with
 # equal weights on all four criteria.  Before summing, each criterion is normalised to
-# [0, 1]; `Cars Prices` is **inverted** so cheaper → higher utility.
+# [0, 1]; `Cars Prices` is **inverted** so cheaper -> higher utility.
 # Alternatives are ranked by utility and split 50/50 into class 1 (preferred) / class 0.
 
 # %%
@@ -90,7 +90,7 @@ df['utility'] = (
     normalise(df['Seats']) +
     normalise(df['Total Speed'])
 )
-# Rank-based split → exactly 50/50 balance (ties broken by first-occurrence order)
+# Rank-based split -> exactly 50/50 balance (ties broken by first-occurrence order)
 n = len(df)
 df['class'] = (df['utility'].rank(method='first', ascending=True) > n // 2).astype(int)
 
@@ -110,7 +110,7 @@ print(f"Train size: {len(X_train)}  |  Test size: {len(X_test)}")
 # ## 4. Train XGBoost with monotone constraints
 #
 # Features are in the order `[HorsePower, Cars Prices, Seats, Total Speed]`.
-# `Cars Prices` is a **cost** criterion, so its constraint is **-1** (higher price → lower preference).
+# `Cars Prices` is a **cost** criterion, so its constraint is **-1** (higher price -> lower preference).
 # A single tree (`n_estimators=1`) keeps the model fully interpretable.
 
 # %%
@@ -166,7 +166,7 @@ else:
 # ## 7. Feature importance (gain-weighted)
 #
 # **Gain** measures the average improvement in the loss function brought by each feature
-# across all splits — a higher gain means that criterion is more decisive.
+# across all splits - a higher gain means that criterion is more decisive.
 
 # %%
 booster = model.get_booster()
@@ -189,7 +189,7 @@ plt.show()
 #
 # PDPs show the **marginal effect** of each criterion on the predicted probability of being
 # in class 1.  The monotone constraint guarantees that each single-criterion curve is
-# non-decreasing (higher criterion value → higher preference probability).
+# non-decreasing (higher criterion value -> higher preference probability).
 
 # %%
 features_pdp = [0, 1, 2, 3, (0, 1), (0, 3)]
@@ -236,7 +236,7 @@ pfi = permutation_feature_importance(_xgb_predict_proba, X_train, y_train,
 print("Permutation importance (AUC drop):")
 for f, (m, s) in sorted(pfi.items(), key=lambda kv: -kv[1][0]):
     print(f"  {f:14s}  {m:+.4f} ± {s:.4f}")
-plot_permutation_importance(pfi, title="XGBoost — Permutation FI")
+plot_permutation_importance(pfi, title="XGBoost - Permutation FI")
 
 # %% [markdown]
 # ## 10. Select 3 alternatives for deep explanation
@@ -253,7 +253,7 @@ def get_name(idx):
     row = df_raw.loc[idx]
     return f"{row['Company Names']} {row['Cars Names']}"
 
-# Select by rank — robust to narrow probability ranges from a single tree
+# Select by rank - robust to narrow probability ranges from a single tree
 high_idx = df_pred['pred_prob'].idxmax()
 low_idx  = df_pred['pred_prob'].idxmin()
 # Borderline: closest pred_prob to the median predicted probability
@@ -287,7 +287,7 @@ for idx, lbl in zip(selected, labels):
         feature_names = FEATURE_NAMES,
     )
     shap.plots.waterfall(explanation, show=False)
-    plt.title(f"SHAP — {lbl}: {name}", pad=12)
+    plt.title(f"SHAP - {lbl}: {name}", pad=12)
     plt.tight_layout()
     plt.show()
 
@@ -304,7 +304,7 @@ plt.show()
 # With continuous features the decision boundaries are the **split thresholds** stored in
 # the tree.  For each criterion we read all thresholds from the tree dump, then find the
 # closest threshold crossing (value just above or just below) that changes the predicted
-# class.  The required delta is read directly from the model parameters — no sampling.
+# class.  The required delta is read directly from the model parameters - no sampling.
 
 # %%
 def get_tree_thresholds(model, feature_names):
@@ -323,7 +323,7 @@ def get_tree_thresholds(model, feature_names):
 def find_min_flip(model, row, feature_names, feature_ranges):
     """Return the minimum-delta single-criterion change that flips the predicted class.
 
-    Uses tree split thresholds directly (analytical) — tries values just above and just
+    Uses tree split thresholds directly (analytical) - tries values just above and just
     below each threshold and picks the smallest absolute change that flips the class.
     """
     X_row = pd.DataFrame([row[feature_names]])
@@ -372,11 +372,11 @@ for idx, lbl in zip(selected, labels):
     flips = find_min_flip(model, row, FEATURE_NAMES, FEATURE_RANGES)
     if flips:
         for f in flips:
-            print(f"  → Change '{f['criterion']}' by {f['delta']:+.1f}"
+            print(f"  -> Change '{f['criterion']}' by {f['delta']:+.1f}"
                   f" (cross tree threshold {f['threshold']:.1f})"
-                  f" → predicted class flips to {f['new_pred']}")
+                  f" -> predicted class flips to {f['new_pred']}")
     else:
-        print("  → No single-criterion change can flip the class")
+        print("  -> No single-criterion change can flip the class")
 
 # %% [markdown]
 # ## 13. Space sampling verification
@@ -393,7 +393,7 @@ for idx, lbl in zip(selected, labels):
 
     flips = find_min_flip(model, row, FEATURE_NAMES, FEATURE_RANGES)
     if not flips:
-        print("  No flip possible — nothing to verify.")
+        print("  No flip possible - nothing to verify.")
         continue
 
     best = min(flips, key=lambda x: abs(x['delta']))
@@ -403,9 +403,9 @@ for idx, lbl in zip(selected, labels):
     sampled_prob = model.predict_proba(pd.DataFrame([test_row]))[0, 1]
 
     agree = "✓ AGREE" if sampled_pred != orig_pred else "✗ DISAGREE"
-    print(f"  Analytical:  '{best['criterion']}' → {best['new_val']:.1f}"
+    print(f"  Analytical:  '{best['criterion']}' -> {best['new_val']:.1f}"
           f"  (Δ={best['delta']:+.1f}, crosses threshold {best['threshold']:.1f})"
-          f"  → class {best['new_pred']}")
+          f"  -> class {best['new_pred']}")
     print(f"  Sampling:    predicted class={sampled_pred}  prob={sampled_prob:.4f}  {agree}")
 
 # %% [markdown]
@@ -420,7 +420,7 @@ for idx, lbl in zip(selected, labels):
 #
 # * **Thresholds / indifference zones**: Flat regions in the PDP curves indicate ordinal
 #   levels where an additional step on that criterion makes no difference to the prediction
-#   — i.e., indifference ranges in the model's learned preference structure.
+#   - i.e., indifference ranges in the model's learned preference structure.
 #
 # * **Criterion nature**: HorsePower, Seats and Total Speed are gain criteria (+1 constraint).
 #   Cars Prices is a cost criterion (−1 constraint): the tree splits enforce that higher
