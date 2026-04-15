@@ -40,7 +40,7 @@ import sys
 cache_path = kagglehub.dataset_download("abdulmalik1518/cars-datasets-2025")
 
 # Copy to your desired local folder
-destination = "./dataset"  # ← change this to your preferred path
+destination = "./dataset"
 os.makedirs(destination, exist_ok=True)
 shutil.copytree(cache_path, destination, dirs_exist_ok=True)
 
@@ -219,72 +219,62 @@ print(df["Cars Prices"].unique())
 # # Dataset description:
 
 # %% [markdown]
-# 1. domain of problem is about choosing the best car for Michał.
+# 1. The domain of the problem is choosing the best car for Michał.
 #
-# 2. source of data is kaggle dataset: https://www.kaggle.com/datasets/abdulmalik1518/cars-datasets-2025
+# 2. Source of data: Kaggle dataset https://www.kaggle.com/datasets/abdulmalik1518/cars-datasets-2025
 #
-# 3. Michał wants the car that is cheap (as he has not found internship yet), that is fast, but also important factor is that the car shall have many seats - Michał wants to do a walcome party in his car, and be able to invite as many people as possible.
+# 3. Michał wants a car that is cheap (as he has not found an internship yet), fast, but also with many seats — Michał wants to organise a welcome party in his car and invite as many people as possible.
 #
-# 4. Michał considered 31 alternatives - only cars with number of seats equal to 7 or more. But the Michał shrank his dataset to 8 random options from this so that he could use not only uta but also ahp on whole dataset and compare results. This is much less alternatives than in original dataset.
+# 4. After preprocessing, the dataset contains **177 alternatives**. Only cars with a number of seats in {7, 8, 9, 12} were kept (alternatives with non-standard seat counts such as "2+2", "2-6", etc. were excluded). One additional outlier was removed: the Cadillac Escalade V (682 hp), whose HorsePower value was far above all other alternatives and would distort the learned preference model.
 #
-# 5. One alternative from original dataset is FERRARI SF90 STRADALE:
+# 5. One example of an excluded alternative is the FERRARI SF90 STRADALE:
 #
-# - Engines: V8   
-# - CC/Battery Capacity: 3990 cc 
+# - Engines: V8
+# - CC/Battery Capacity: 3990 cc
 # - HorsePower: 963 hp
-# - Total Speed: 340 km/h 
-# - Performance(0 - 100 )KM/H: 2.5 sec 
-# - Cars Prices: $1,100,000 
-# - Fuel Types: plug in hyrbrid
+# - Total Speed: 340 km/h
+# - Performance (0–100 km/h): 2.5 sec
+# - Cars Prices: $1,100,000
+# - Fuel Types: plug-in hybrid
 # - Seats: 2
 # - Torque: 800 Nm
 #
-#   But Michał does not include this alternative, it has only 2 seats - it might be an acceptable choice for a date, but not for a legendary party that Michał wants to organize.
+#   The Ferrari is excluded because it has only 2 seats — it might be an acceptable choice for a date, but not for the legendary party Michał wants to organise.
 #
-# 6. Michał considers four criteria: 
-# - seats
-# - car price
-# - total speed
+# 6. Michał considers four criteria:
+# - Seats
+# - Cars Prices
+# - Total Speed
 # - HorsePower
 #
-#   Michał also has some self-contradictory preferences regarding his favourite car models.
+#   The original dataset contained additional attributes (engine type, CC/battery capacity, 0–100 km/h performance, fuel type, torque), but Michał does not consider those. The four chosen criteria are fully sufficient to capture his preferences.
 #
-#   In the original data set there were more criteria: engines, CC/battery capacity, performance (0 - 100)km/h, fual types, torque, but Michał does not consider those criteria. Four criteria that Michał chose are fully sufficient.
+# 7. Criterion types and scales:
+# - **Seats** — discrete **gain** criterion; values in {7, 8, 9, 12}.
+# - **Total Speed** — continuous **gain** criterion (km/h); higher speed is preferred.
+# - **HorsePower** — continuous **gain** criterion (hp); higher power is preferred.
+# - **Cars Prices** — continuous **cost** criterion (USD); lower price is preferred.
 #
-# 7. 
-# - seats is discrete gain type criterium
-# - total speed is gain type, it was continuous, we divided it into 5 categories: ['≥155.0', '≥168.0', '≥181.0', '≥194.0', '≥207.0']
-#   car price and HorsePower also were continuous, we divided them into categories similar way. 
+#   All three continuous criteria are used at their raw continuous values in the preference-learning models (saved in `dataset_preprocessed_continuous.csv`).
 #
-#   For price, which was cost type, we inverted ordering, so that the cheapest correspond to best.
-#   
-#   While transforming continuous categories into discrete ones, we did not take outliers, as we saw that in each case there were not that many (Ferrari would be outlier compared to cars Michał chose from, but we did not consider it). In each case we did divide distirbution linearly into categories.
+# 8. All four criteria are treated as equally important. Other attributes available in the raw dataset are irrelevant to Michał's decision.
 #
-# 8. All 4 criteria that were considered are of equal importance. Other criteria are irrelevant.
+# 9. There is no single alternative that dominates all others. One strong candidate from the dataset is the **Honda Pilot** — it is relatively cheap (~$40,000), has a total speed of 209 km/h (above average among the considered alternatives), and its HorsePower is comparable to many competitors. It is not outstanding on any single criterion, but offers good overall value across all four.
 #
-# 10. In my opinion the best alternative would be Ferrari, but Michał wants to consider alternative that has 7 seats or more, if that constraint is fulfilled, then he wants to consider number of seats, horse power, total speed, and price as similarly important.
+# 10. An example of a weaker alternative is the **Kia Carnival EX**. It is affordable and decently fast, but its HorsePower is below average. It has no single decisive disadvantage, but no decisive advantage either.
 #
-# 11. There is no alternative that seems to be much better than the others. One alternative that can be considered is Honda Pilot - it costs 40,000$, so is realtively cheap, total speed of 209 km/h, what is better score than average among considered alternatives, and its horse power is not worse than many other alternatives. So it is good not because of one outsanding criterium, but because of good overall value of criteria.
+# 11. A few illustrative pairwise comparisons:
 #
-# 12. One of alternatives that seems not that strong is Kia Carnival EX. It is quite cheap, and decently fast, but has quite small horse power. It is not a very bad car, and there is no one major disadvantage.
+# - **Honda Pilot vs Nissan NV1500**: Pilot is faster (209 vs 160 km/h) and has more HP (285 vs 261), but the NV1500 seats 12 people compared to just 8.
 #
-# 13. 
+# - **Nissan NV1500 vs VW Transporter**: NV1500 seats more people (12 vs 9) and has more HP (261 vs 153), but the Transporter is slightly faster (180 vs 160 km/h).
 #
-# - Honda PILOT vs Nissan NV1500: PILOT is much faster (209 vs 160 km/h) and has more HP (285 vs 261), but NV1500 can fit 12 people compared to just 8.
-#
-# - Nissan NV1500 vs VW Transporter: NV1500 has more seats (12 vs 9) and more HP (261 vs 153), but Transporter is a bit faster (180 vs 160 km/h).
-#
-# - Ferrari vs Nissan NV1500: Ferrari can fit only 2 people compared to 12.
+# - **Ferrari SF90 vs Nissan NV1500**: The Ferrari is dramatically faster and more powerful, but seats only 2 people vs 12 — making it unsuitable for Michał's use case.
 
 
 # %%
 def save_preprocessed(dataframe,
-                       path_discrete="dataset/dataset_preprocessed.csv",
                        path_continuous="dataset/dataset_preprocessed_continuous.csv"):
-    cols_discrete = ["Company Names", "Cars Names", "HorsePower", "Cars Prices", "Seats", "Total Speed"]
-    dataframe[cols_discrete].to_csv(path_discrete, index=False)
-    print(f"Discrete dataset saved to:    {path_discrete}")
-
     cols_continuous = ["Company Names", "Cars Names", "HorsePower_cont", "Cars Prices_cont", "Seats", "Total Speed_cont"]
     (dataframe[cols_continuous]
         .rename(columns={"HorsePower_cont": "HorsePower",
