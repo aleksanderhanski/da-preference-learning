@@ -12,3 +12,5 @@ dataset/
 
 .venv
 myenv/
+
+.DS_Store
